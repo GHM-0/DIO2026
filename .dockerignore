@@ -1,0 +1,22 @@
+# Ignorar o ambiente virtual local (O MAIS IMPORTANTE)
+.venv/
+
+# Dados e Segredos
+.env
+.db/
+
+# Versionamento e Metadados
+.git/
+.gitignore
+
+# Cache de Python e Testes
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# Arquivos de Build/Documentação
+Dockerfile
+docker-compose.yml
+docker-compose.override.yml
+Makefile
+README.md

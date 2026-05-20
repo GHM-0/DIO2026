@@ -1,0 +1,97 @@
+classDiagram
+    class Account {
+        +int id
+        +Balance balance
+        +deposit(amount: Amount)
+        +withdraw(amount: Amount)
+    }
+
+    class Transaction {
+        <<abstract>>
+        #int id
+        #Account origin
+        #Account destination
+        #Amount amount
+        #TransactionType type
+        #datetime timestamp
+        #bool|None _status
+        +__init__(...)
+        #__post_init__()
+        #_operate()* TransactionResult
+        #_reverse()* TransactionResult
+        #_build_result(success: bool, message: str) TransactionResult
+    }
+
+    class Credit {
+        #_operate() TransactionResult
+        #_reverse() TransactionResult
+    }
+
+    class Debit {
+        #_operate() TransactionResult
+        #_reverse() TransactionResult
+    }
+
+    class Transference {
+        #_operate() TransactionResult
+        #_reverse() TransactionResult
+    }
+
+    class Amount {
+        <<ValueObject>>
+        +Decimal value
+        +validate(value: Decimal) Amount
+    }
+
+    class Balance {
+        <<ValueObject>>
+        +Decimal value
+        +validate(value: Decimal) Balance
+    }
+
+    class TransactionResult {
+        <<ValueObject>>
+        +bool success
+        +str message
+        +int transaction_id
+        +TransactionType transaction_type
+        +Amount amount
+        +int origin_id
+        +int destination_id
+        +datetime timestamp
+    }
+
+    class TransactionType {
+        <<enumeration>>
+        CREDIT
+        DEBIT
+        TRANSFERENCE
+    }
+
+    class TransactionException {
+        <<exception>>
+    }
+    class InvalidId { <<exception>> }
+    class InvalidAccount { <<exception>> }
+    class SameAccountException { <<exception>> }
+    class InvalidAmount { <<exception>> }
+
+    Transaction <|-- Credit
+    Transaction <|-- Debit
+    Transaction <|-- Transference
+
+    Transaction o-- Account : "origin/destination"
+    Transaction o-- Amount : "amount"
+    Account o-- Balance : "balance"
+
+    Transaction ..> TransactionResult : "returns"
+    Transaction ..> TransactionException : "throws"
+
+    TransactionException <|-- InvalidId
+    TransactionException <|-- InvalidAccount
+    TransactionException <|-- SameAccountException
+    TransactionException <|-- InvalidAmount
+
+    TransactionResult --> TransactionType
+    TransactionResult --> Amount
+    Transaction --> TransactionType
