@@ -9,32 +9,39 @@ classDiagram
     class Transaction {
         <<abstract>>
         #int id
-        #Account origin
-        #Account destination
-        #Amount amount
-        #TransactionType type
-        #datetime timestamp
+        #Account _operand
+        #Account _counterparty
+        #Amount _amount
+        #TransactionType _type
+        #datetime _timestamp
         #bool|None _status
-        +__init__(...)
-        #__post_init__()
+        +__init__(id: int|None, operand: Account, counterparty: Account|None, type: TransactionType, amount: Decimal, timestamp: datetime|None)
+        +account_orig_id: int|None
+        +account_dest_id: int|None
+        +amount: Decimal
+        +type: TransactionType
+        +id: int|None
+        +timestamp: datetime|None
+        +status: str
         #_operate()* TransactionResult
-        #_reverse()* TransactionResult
         #_build_result(success: bool, message: str) TransactionResult
+        +__eq__(other)
+        +__repr__()
     }
 
     class Credit {
+        +__init__(id: int|None, operand: Account, type: TransactionType, amount: Decimal, timestamp: datetime|None)
         #_operate() TransactionResult
-        #_reverse() TransactionResult
     }
 
     class Debit {
+        +__init__(id: int|None, operand: Account, type: TransactionType, amount: Decimal, timestamp: datetime|None)
         #_operate() TransactionResult
-        #_reverse() TransactionResult
     }
 
     class Transference {
+        +__init__(id: int|None, operand: Account, counterparty: Account, type: TransactionType, amount: Decimal, timestamp: datetime|None)
         #_operate() TransactionResult
-        #_reverse() TransactionResult
     }
 
     class Amount {
@@ -80,8 +87,8 @@ classDiagram
     Transaction <|-- Debit
     Transaction <|-- Transference
 
-    Transaction o-- Account : "origin/destination"
-    Transaction o-- Amount : "amount"
+    Transaction o-- Account : "_operand/_counterparty"
+    Transaction o-- Amount : "_amount"
     Account o-- Balance : "balance"
 
     Transaction ..> TransactionResult : "returns"

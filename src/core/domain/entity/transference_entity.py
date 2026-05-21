@@ -6,6 +6,7 @@ from core.domain.entity.transaction_entity import Transaction
 from core.domain.entity.credit_entity import Credit
 from core.domain.entity.debit_entity import Debit
 from core.domain.value_object.transaction_result import TransactionResult
+from core.domain.value_object.transaction_status import TransactionStatus
 from core.domain.value_object.transaction_type import TransactionType
 
 class Transference(Transaction):
@@ -31,32 +32,47 @@ class Transference(Transaction):
             amount=amount,
             timestamp=timestamp
         )
-        self._operate()
+
 
     def _operate(self) -> TransactionResult:
         """
         Executa a transferência orquestrando as operações unárias.
         """
 
+        msg: str = f"{self.__class__.__name__} Operate:"
+        debit = Debit|None
+        credit = Credit|None
+
         try:
-            debit = Debit(operand=self._operand, counterparty=self._destination, amount=self.amount)
+            debit = Debit(operand=self._operand, counterparty=self._counterparty, amount=self.amount)
 
-            if debit._status:
-                credit = Credit(operand=self._operand, counterparty=self._destination, amount=self.amount)
+            if debit.status == TransactionStatus.COMPLETED.value:
 
-                if credit._status:
-                    self._status=True
-                    return self._build_result(self._status, f"{self.__class__.__name__} realizada com sucesso")
+                credit = Credit(operand=self._counterparty,counterparty=self._operand, amount=self.amount)
+
+                if credit.status == TransactionStatus.COMPLETED.value:
+
+                    self._status = TransactionStatus.COMPLETED
+
+                    msg += f"{self._type.value} realizado com sucesso"
 
         except Exception as e:
-            self._status = False
-            return self._build_result(self._status, f"{self.__class__.__name__}  falhou:{e}")
+            self._status = TransactionStatus.FAILED
 
+            try:
 
+                if credit is not None and credit.status is TransactionStatus.FAILED.value:
+                    Debit(operand=self._counterparty, counterparty=self._operand, amount=self.amount)
 
-    def _reverse(self) -> TransactionResult:
-        """
-        Reverte a transferência via operações unárias opostas.
-        """
+                if debit is not None and debit.status  is TransactionStatus.FAILED.value:
+                    Credit(operand=self._counterparty, counterparty=self._operand,amount=self.amount)
 
-        return self._build_result(self._status, f"{self.__class__.__name__} Revertida")
+                msg += f" Restorno Bem sucedido"
+                self._status = TransactionStatus.REVERTED
+
+            except Exception as revert_error:
+                msg += f" Restorno falhou: {str(revert_error)}"
+
+            msg += f"{self._type.value} falhou: {str(e)}"
+
+        return self._build_result(self.status, f"{self.__class__.__name__}:{str(msg)}")
