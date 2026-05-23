@@ -21,6 +21,7 @@ def test_login_success(client):
     assert isinstance(data["access_token"], str)
     assert len(data["access_token"]) > 0
 
+
 def test_login_invalid_payload(client):
     """Garante que o FastAPI valida o tipo de dado do user_id."""
     payload = {"user_id": "not-a-number"}

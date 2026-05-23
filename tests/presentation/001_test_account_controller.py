@@ -108,8 +108,8 @@ async def test_deve_retornar_o_extrato_de_transacoes_de_uma_conta_valida_sem_tra
         "user_id": 1,
         "balance": 1000.0,
         "transactions": [
-            {"amount": 200.0, "type": TransactionType.CREDIT},
-            {"amount": 50.0, "type": TransactionType.DEBIT}
+            {"amount": 200.0, "transaction_type": TransactionType.CREDIT},
+            {"amount": 50.0, "transaction_type": TransactionType.DEBIT}
         ]
     }
 ])
@@ -140,10 +140,10 @@ async def test_deve_retornar_o_extrato_de_transacoes_de_uma_conta_valida_com_tra
     assert isinstance(transactions_list, list)
     assert len(transactions_list) == len(test_case["transactions"])
     assert transactions_list[0]["account_orig_id"] == account_persisted.id
-    
+
     # Validação de valor (convertendo para float para comparar com o setup)
     assert float(transactions_list[0]["amount"]) == test_case["transactions"][0]["amount"]
-    assert transactions_list[0]["type"] == test_case["transactions"][0]["type"].value # Comparar o valor do Enum
+    assert transactions_list[0]["transaction_type"] == test_case["transactions"][0]["transaction_type"].value # Comparar o valor do Enum
 
     assert float(transactions_list[1]["amount"]) == test_case["transactions"][1]["amount"]
-    assert transactions_list[1]["type"] == test_case["transactions"][1]["type"].value # Comparar o valor do Enum
+    assert transactions_list[1]["transaction_type"] == test_case["transactions"][1]["transaction_type"].value # Comparar o valor do Enum

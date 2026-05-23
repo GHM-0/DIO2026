@@ -2,6 +2,7 @@
 from abc import abstractmethod, ABC
 from datetime import datetime
 from decimal import Decimal
+from typing import Self
 
 from core.domain.entity.account_entity import Account
 from core.domain.value_object.transaction_result import TransactionResult
@@ -21,9 +22,9 @@ class Transaction(ABC):
     _status: TransactionStatus
 
     _id: int | None
-    _operand: Account
-    _counterparty: Account
-    _type: TransactionType
+    _account_orig_id: int
+    _account_dest_id: int
+    _transaction_type: TransactionType
     _amount: Decimal
     _timestamp: datetime | None
 
@@ -31,50 +32,70 @@ class Transaction(ABC):
         self,
         *,
         id: int | None = None,
-        operand: Account,
-        counterparty: Account,
-        type: TransactionType,
+        account_orig_id: int,
+        account_dest_id: int,
         amount: Decimal,
         timestamp: datetime | None = None
     ) -> None:
         self._id = id
-        self._operand = operand
-        self._counterparty = counterparty
-        self._type = type
+        self._account_orig_id = account_orig_id
+        self._account_dest_id = account_dest_id
         self._amount = Amount.validate(amount)
         self._timestamp = timestamp
         self._status = TransactionStatus.CREATED
 
         self.__post_init__()
-        self._operate()
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        id: int | None = None,
+        account_orig: Account,
+        account_dest: Account,
+        amount: Decimal,
+        timestamp: datetime | None = None
+    ) -> Self:
+        instance = cls(
+            id=id,
+
+            account_orig_id=account_orig.id,
+            account_dest_id=account_dest.id,
+
+            amount=amount,
+            timestamp=timestamp
+        )
+        instance._operate(account_orig=account_orig, account_dest=account_dest)
+        return instance
+
 
     def __post_init__(self):
+        # Validações agora usam os IDs diretamente
+        if self._account_orig_id <= 0:
+            raise InvalidAccount(f"ID da conta de origem inválido: {self._account_orig_id}")
 
-        if self._operand.id is not None and self._operand.id <= 0:
-            raise InvalidAccount(f"ID da conta de origem inválido: {self._operand.__class__.__name__}")
+        if self._account_dest_id <= 0:
+            raise InvalidAccount(f"ID da conta de destino inválido: {self._account_dest_id}")
 
-        if self._counterparty is not None and self._counterparty.id is not None and self._counterparty.id <= 0:
-            raise InvalidAccount(f"ID da conta de destino inválido: {self._counterparty.__class__.__name__}")
-
-        if self._operand == self._counterparty:
-            raise SameAccountException(f"Não é possível operar {self.__class__.__name__} entre a mesma conta {self._operand}")
+        if self._account_orig_id == self._account_dest_id:
+            raise SameAccountException(f"Não é possível operar {self.__class__.__name__} entre a mesma conta {self._account_orig_id}")
 
         if self._id is not None and self._id <= 0:
             raise InvalidId(f"ID inválido na criação da {self.__class__.__name__}")
 
     @property
     def account_orig_id(self) -> int | None:
-        return self._operand.id
+        return self._account_orig_id
 
     @property
     def account_dest_id(self) -> int | None:
-        return self._counterparty.id
+        return self._account_dest_id
 
     @property
     def amount(self) -> Decimal: return self._amount
 
     @property
-    def type(self) -> TransactionType: return self._type
+    def type(self) -> TransactionType: return self._transaction_type
 
     @property
     def id(self) -> int | None: return self._id
@@ -87,12 +108,8 @@ class Transaction(ABC):
         return  self._status.value
 
     @abstractmethod
-    def _operate(self) -> TransactionResult:
+    def _operate(self, account_orig: Account, account_dest: Account) -> TransactionResult: # Assinatura atualizada
         ...
-
-    # @abstractmethod
-    # def _revert(self) -> TransactionResult:
-    #     ...
 
     def _build_result(self, status: str, message: str) -> TransactionResult:
         """Constrói um objeto TransactionResult com os dados atuais da transação."""
@@ -102,8 +119,8 @@ class Transaction(ABC):
             transaction_id = self.id,
             transaction_type = self.type,
             amount = self.amount,
-            origin_id = self.account_orig_id,
-            destination_id = self.account_dest_id,
+            account_orig_id = self.account_orig_id,
+            account_dest_id = self.account_dest_id,
             timestamp = self.timestamp or datetime.now()
         )
 

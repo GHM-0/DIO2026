@@ -12,8 +12,8 @@ if str(BASE_DIR / "src") not in sys.path:
     sys.path.insert(0, str(BASE_DIR / "src"))
 
 # Configurações e Tabelas
-from infrastructure.config import settings  # type: ignore
-from infrastructure.persistence.model.models_module import Base  # type: ignore
+from infrastructure.config import settings  # transaction_type: ignore
+from infrastructure.persistence.model.models_module import Base  # transaction_type: ignore
 
 # Importe aqui todos os modelos para garantir que o Base.metadata os conheça
 # Exemplo: from infrastructure.persistence.model import user_model, product_model

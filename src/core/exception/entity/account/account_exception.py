@@ -12,6 +12,9 @@ class InvalidId(AccountException):
 class InvalidUser(AccountException):
     pass
 
+class InsufficientFundsException(AccountException):
+    pass
+
 # Withdraw
 class InsufficientBalance(AccountException):
     pass

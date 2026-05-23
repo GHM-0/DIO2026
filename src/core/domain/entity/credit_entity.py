@@ -1,65 +1,52 @@
-# src.core.domain.entity.transaction.credit_entity.py
-import concurrent
+# src.core.domain.entity.credit_entity.py
 from datetime import datetime
 from decimal import Decimal
+from typing import Self
+
 from core.domain.entity.account_entity import Account
 from core.domain.entity.transaction_entity import Transaction
 from core.domain.value_object.transaction_result import TransactionResult
 from core.domain.value_object.transaction_status import TransactionStatus
 from core.domain.value_object.transaction_type import TransactionType
+from core.exception.entity.transaction.transaction_exception import InvalidAccount
+
 
 class Credit(Transaction):
     """
     Representa uma operação unária de crédito.
     """
+    _transaction_type: TransactionType = TransactionType.CREDIT
 
-    def __init__(
-        self,
-        *,
-        id: int | None = None,
-        operand: Account,
-        counterparty: Account,
-        type: TransactionType = TransactionType.CREDIT,
-        amount: Decimal,
-        timestamp: datetime | None = None
-    ) -> None:
-        super().__init__(
-            id=id,
-            operand=operand,
-            counterparty=counterparty,
-            type=type,
-            amount=amount,
-            timestamp=timestamp
-        )
+    # def __init__(
+    #     self,
+    #     *,
+    #     id: int | None = None,
+    #     account_orig_id: int, # Recebe o ID
+    #     account_dest_id: int, # Recebe o ID
+    #     amount: Decimal,
+    #     timestamp: datetime | None = None
+    # ) -> None:
+    #     super().__init__(
+    #         id=id,
+    #         account_orig_id=account_orig_id, # Passa o ID para a classe base
+    #         account_dest_id=account_dest_id, # Passa o ID para a classe base
+    #         transaction_type=self._transaction_type,
+    #         amount=amount,
+    #         timestamp=timestamp
+    #     )
 
-    # Do not compute counterparty it-self
-    def _operate(self) -> TransactionResult:
+
+    def _operate(self, account_orig: Account, account_dest: Account) -> TransactionResult:
         msg:str = f"{self.__class__.__name__} Operate:"
 
+
+        if account_dest.id != self.account_dest_id:
+            raise InvalidAccount(f"{msg} ID da conta de destino fornecido ({account_dest.id}) não corresponde ao da transação ({self.account_dest_id}).")
+
         try:
-            self._operand.deposit(self.amount)  # Se Não lançar uma Exceção
-
+            account_dest.deposit(self.amount)
             self._status = TransactionStatus.COMPLETED
-            msg += f"{self._type.value} realizado com sucesso"
-
+            return self._build_result(self.status, f"{msg} Crédito de {self.amount} na conta {account_dest.id} concluído com sucesso.")
         except Exception as e:
             self._status = TransactionStatus.FAILED
-            msg += f"{self._type.value} falhou: {str(e)}"
-
-        return self._build_result(self._status, msg) # Corrigido para passar self._status (enum)
-
-    # # Em que caso seria executado
-    # def _revert(self) -> TransactionResult:
-    #     msg: str = f"{self.__class__.__name__} Revert:"
-    #
-    #     try:
-    #         self._operand.withdraw(self.amount)  # Se Não lançar uma Exceção
-    #
-    #         self._status = True
-    #         msg += f"Restorno de {self._type.value} realizado com sucesso"
-    #
-    #     except Exception as e:
-    #         self._status = False
-    #         msg += f"Restorno de {self._type.value} falhou: {str(e)}"
-    #
-    #     return self._build_result(self._status, msg)
+            return self._build_result(self.status, f"{msg} Falha ao creditar na conta {account_dest.id}. Erro: {str(e)}")

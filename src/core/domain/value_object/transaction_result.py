@@ -18,6 +18,6 @@ class TransactionResult:
     transaction_id: int | None
     transaction_type: TransactionType
     amount: Decimal
-    origin_id: int | None
-    destination_id: int | None
+    account_orig_id: int | None
+    account_dest_id: int | None
     timestamp: datetime

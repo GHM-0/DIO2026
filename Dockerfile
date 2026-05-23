@@ -53,8 +53,8 @@ COPY . .
 
 # --- Hardened security ---
 RUN chown -R root:root /desafio && \
-    find /desafio -type d -exec chmod 555 {} + && \
-    find /desafio -type f -exec chmod 444 {} + && \
+    find /desafio -transaction_type d -exec chmod 555 {} + && \
+    find /desafio -transaction_type f -exec chmod 444 {} + && \
     chmod -R 555 /desafio/.venv/bin
 
 # Muda para usuário não-root por segurança

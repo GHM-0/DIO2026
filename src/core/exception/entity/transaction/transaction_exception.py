@@ -15,6 +15,9 @@ class InvalidAccount(TransactionException):
 class SameAccountException(TransactionException):
     pass
 
+class InsufficientFundsException(TransactionException):
+    pass
+
 # On Creation
 # Amount
 class InvalidAmount(TransactionException):

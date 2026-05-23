@@ -6,7 +6,10 @@ from sqlalchemy import select, Select, delete, Delete
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError
 from sqlalchemy.engine import Result, ScalarResult
 
+from core.domain.entity.credit_entity import Credit
+from core.domain.entity.debit_entity import Debit
 from core.domain.entity.transaction_entity import Transaction
+from core.domain.entity.transference_entity import Transference
 from core.domain.port.repository.transaction_repository_interface import ITransactionRepository
 from core.domain.value_object.transaction_type import TransactionType
 
@@ -17,7 +20,7 @@ from infrastructure.persistence.model.transaction_model import TransactionModel
 
 class TransactionRepository(ITransactionRepository):
 
-    _IMMUTABLE_FIELDS = {"id", "account_orig_id", "account_dest_id", "timestamp", "type", "amount"}
+    _IMMUTABLE_FIELDS = {"id", "account_orig_id", "account_dest_id", "timestamp", "transaction_type", "amount"}
 
 
     def __init__(self,session: AsyncSession):
@@ -28,13 +31,44 @@ class TransactionRepository(ITransactionRepository):
 
         try:
 
-         return Transaction(
-             id = model.id,
-             account_orig_id = model.account_orig_id,
-             account_dest_id = model.account_dest_id,
-             type = TransactionType(model.type),
-             amount = model.amount,
-             timestamp = model.timestamp
+         # if model.transaction_type == TransactionType.TRANSFERENCE.value:
+         #     return Transference(
+         #         id = model.id,
+         #         account_orig_id = model.account_orig_id,
+         #         account_dest_id = model.account_dest_id,
+         #         amount = model.amount,
+         #         timestamp = model.timestamp
+         #     )
+         # if model.transaction_type == TransactionType.CREDIT.value:
+         #     return Credit(
+         #         id = model.id,
+         #         account_orig_id = model.account_orig_id,
+         #         account_dest_id = model.account_dest_id,
+         #         amount = model.amount,
+         #         timestamp = model.timestamp
+         #     )
+         # if model.transaction_type == TransactionType.DEBIT.value:
+         #     return Debit(
+         #         id = model.id,
+         #         account_orig_id = model.account_orig_id,
+         #         account_dest_id = model.account_dest_id,
+         #         amount = model.amount,
+         #         timestamp = model.timestamp
+         #     )
+
+         transaction_map = {
+             TransactionType.TRANSFERENCE.value: Transference,
+             TransactionType.CREDIT.value: Credit,
+             TransactionType.DEBIT.value: Debit,
+         }
+
+         transaction_class = transaction_map[model.transaction_type]
+         return transaction_class(
+             id=model.id,
+             account_orig_id=model.account_orig_id,
+             account_dest_id=model.account_dest_id,
+             amount=model.amount,
+             timestamp=model.timestamp
          )
 
         except Exception as e:
@@ -82,7 +116,7 @@ class TransactionRepository(ITransactionRepository):
         model = TransactionModel(
             account_orig_id = entity.account_orig_id,
             account_dest_id = entity.account_dest_id,
-            type = entity.type.value if hasattr(entity.type, 'value') else entity.type,
+            transaction_type = entity.type.value, #if hasattr(entity.transaction_type, 'value') else entity.transaction_type,
             amount = entity.amount,
             timestamp = entity.timestamp
         )

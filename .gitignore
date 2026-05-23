@@ -11,7 +11,7 @@ wheels/
 
 # Store Data
 .db/
-.env
+#.env
 
 # IDE
 .idea

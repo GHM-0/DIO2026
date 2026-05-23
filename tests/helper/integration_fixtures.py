@@ -113,7 +113,7 @@ async def db_to_test(db_session: AsyncSession):
                     account_orig_id=account_saved.id,
                     account_dest_id=tx_data.get("account_dest_id"),
                     amount=Decimal(str(tx_data["amount"])),
-                    type=tx_data["type"]
+                    transaction_type=tx_data["transaction_type"]
                 )
                 tx_saved = await transaction_repo.save_one(tx)
                 transactions.append(tx_saved)
