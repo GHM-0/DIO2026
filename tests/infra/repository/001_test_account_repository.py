@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from application.dto.account_dto import CreateAccountRequest
 from core.domain.entity.account_entity import Account
 from infrastructure.persistence.repository.account_repository_impl import AccountRepository
-from infrastructure.exception.persistence.persistence_exception import PersistenceException
+from exception.infrastructure.exception.persistence.persistence_exception import PersistenceException
 
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def clean_database(truncate_table):
@@ -109,10 +109,10 @@ async def test_deve_retornar_dados_inalterados_com_update_vazio(db_session):
 @pytest.mark.asyncio
 async def test_deve_retornar_none_ao_tentar_atualizar_conta_inexistente(db_session):
     repository = AccountRepository(db_session)    
-    account = Account(id=999, user_id=1, balance=Decimal("-100.00"), created_at=datetime.now())
+    account = Account(account_id=999, user_id=1, balance=Decimal("-100.00"), created_at=datetime.now())
     with pytest.raises(PersistenceException) as e:
         await repository.update_one(account)
-    assert "Account não encontrada pelo id: 999" in str(e.value)
+    assert "Account não encontrada pelo account_id: 999" in str(e.value)
 
 @pytest.mark.asyncio
 async def test_deve_retornar_lista_vazia_quando_usuario_nao_possui_contas(db_session):

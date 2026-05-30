@@ -1,5 +1,5 @@
 # src/infrastructure/exception/persistence/persistence_exception.py
-from infrastructure.exception.infra_exception import InfraException
+from exception.infrastructure.exception.infra_exception import InfraException
 
 class PersistenceException(InfraException):
     """Base para falhas em operações de DML (Runtime/Persistence)."""

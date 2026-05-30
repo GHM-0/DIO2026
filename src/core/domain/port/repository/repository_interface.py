@@ -1,4 +1,5 @@
 # src.core.domain.port.repository_interface.py
+
 from abc import ABC,abstractmethod
 from typing import List, TypeVar, Generic, Optional, Dict, Any
 
@@ -9,7 +10,16 @@ class IRepository(ABC, Generic[T]):
     Interface Genérica para operações de persistência.
     Utilizada para todas as entidades do domínio.
     """
-        
+
+    # Sugestão do Gemini Para atender a requisitos do mypy
+    @abstractmethod
+    def __init__(self, session: Any) -> None: # Adicionado: Contrato de inicialização
+        """
+        Inicializa o repositório com uma sessão.
+        As implementações concretas devem aceitar o tipo de sessão apropriado.
+        """
+        ...
+
     @abstractmethod
     async def read_all(self) -> List[T]:
         """Busca todos os registros."""
@@ -36,7 +46,7 @@ class IRepository(ABC, Generic[T]):
         ...
 
     # @abstractmethod
-    # async def update_one(self, id: int, changes: Dict[str, Any]) -> Optional[T]:
+    # async def update_one(self, transaction_id: int, changes: Dict[str, Any]) -> Optional[T]:
     #     """Aplica atualizações parciais."""
     #     ...
 
@@ -53,7 +63,7 @@ class IRepository(ABC, Generic[T]):
 
     # Não serão implementados para este exercício
     # @abstractmethod
-    # async def soft_delete_one(self, id: int) -> bool:
+    # async def soft_delete_one(self, transaction_id: int) -> bool:
     #     """Exclusão lógica de um único registro."""
     #     ...
     #

@@ -1,11 +1,14 @@
 # src.core.domain.port.async_db_transaction_unit_interface.py
+
 from abc import ABC, abstractmethod
-from typing import TypeVar, Generic, Type, Any
+
+from typing import TypeVar, Generic, Type, Any     #, Self
 
 from core.domain.port.repository.repository_interface import IRepository
 
-R = TypeVar("R", bound=IRepository)
+
 T = TypeVar("T")
+R = TypeVar("R", bound=IRepository[Any])      # IRepository[T])== T ? IRepository[Any]
 
 class IAsyncDbTransactionUnit(ABC, Generic[T]):
     """
@@ -29,7 +32,7 @@ class IAsyncDbTransactionUnit(ABC, Generic[T]):
 
 
     @abstractmethod
-    async def __aenter__(self) -> "IAsyncDbTransactionUnit[T]": ...
+    async def __aenter__(self) -> IAsyncDbTransactionUnit[T] : ... #O USO de Self Obscurece o retorno
 
     @abstractmethod
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None: ...

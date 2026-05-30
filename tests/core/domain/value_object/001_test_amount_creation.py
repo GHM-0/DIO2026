@@ -3,7 +3,7 @@ from decimal import Decimal
 import pytest
 
 from core.domain.value_object.amount import Amount
-from core.exception.value_object.amount_exception import InvalidAmount
+from exception.core.exception.value_object.amount_exception import InvalidAmount
 
 
 # Formatação Simples

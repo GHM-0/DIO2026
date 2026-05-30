@@ -1,4 +1,5 @@
 # src.infrastructure.persistence.async_sqlalchemy_database.py
+
 from contextlib import asynccontextmanager
 
 # SQLAchy
@@ -50,10 +51,9 @@ class AsyncSqlAlchemyDatabase(IAsyncDatabase[AsyncSession]):
             self._session_factory = None
 
 
-
     # Session factory
     @asynccontextmanager
-    async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
+    async def get_session(self) -> AsyncGenerator[AsyncSession]:
         """
         Retorna uma sessão válida com SGBD
         """

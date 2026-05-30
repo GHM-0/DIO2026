@@ -1,6 +1,8 @@
+# src.core.domain.value_object.balance.py
+
 from decimal import Decimal
 from typing import Any
-from core.exception.value_object.balance_exception import InvalidBalance
+from exception.core.exception.value_object.balance_exception import InvalidBalance
 
 class Balance:
     @staticmethod

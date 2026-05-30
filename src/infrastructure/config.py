@@ -1,10 +1,11 @@
 # src.infrastructure.config.py
-from typing import Any
+
+from typing import Any, Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings,SettingsConfigDict
 
-from infrastructure.exception.database.database_exceptions import DatabaseException
+from exception.infrastructure.exception.database.database_exceptions import DatabaseException
 from infrastructure.persistence.database_profiles import DbProfile
 
 
@@ -18,19 +19,17 @@ class Settings(BaseSettings):
     """
 
     # env
-    MYSQL_PORT:int = Field(description="Porta de conexão do Banco")
-    MYSQL_HOST:str = Field(description="Endereço IP do Host/DB")
-    MYSQL_ROOT: str = Field(description="Nome do root para conexão com DB")
-    MYSQL_USER:str = Field(description="Nome do usuário para conexão com DB")
-    MYSQL_PASSWORD:str = Field(description="Senha do usuário")
-    MYSQL_DATABASE:str = Field(description="Nome do Schema ou Database")
-    MYSQL_ROOT_PASSWORD:str = Field(description="Senha de Root")
-    CHARSET: str = Field(description="Codificação da base de dados")
-
-    SECRET_KEY: str = Field(description="Chave secreta para geração de tokens")
-    ALGORITHM: str = Field(description="Tipo de Criptográfia do Token de Acesso")
-
-    DB_PROFILES: dict[str, dict[str, Any]] = Field(default={}, alias="DB_PROFILES")
+    MYSQL_PORT: Optional[int] = Field(default=None, description="Porta de conexão do Banco")
+    MYSQL_HOST: Optional[str] = Field(default=None, description="Endereço IP do Host/DB")
+    MYSQL_ROOT: Optional[str] = Field(default=None, description="Nome do root para conexão com DB")
+    MYSQL_USER: Optional[str] = Field(default=None, description="Nome do usuário para conexão com DB")
+    MYSQL_PASSWORD: Optional[str] = Field(default=None, description="Senha do usuário")
+    MYSQL_DATABASE: Optional[str] = Field(default=None, description="Nome do Schema ou Database")
+    MYSQL_ROOT_PASSWORD: Optional[str] = Field(default=None, description="Senha de Root")
+    CHARSET: Optional[str] = Field(default=None, description="Codificação da base de dados")
+    SECRET_KEY: Optional[str] = Field(default=None, description="Chave secreta para geração de tokens")
+    ALGORITHM: Optional[str] = Field(default=None, description="Tipo de Criptográfia do Token de Acesso")
+    DB_PROFILES: dict[str, dict[str, str|None]] = Field(default_factory=dict, alias="DB_PROFILES")
 
     def _get_database_url(
         self,
@@ -46,9 +45,9 @@ class Settings(BaseSettings):
                 str: String de conexão válida para SQLAlchemy.
         """
 
-        url = None
+        url:str|None = None
 
-        missing_components = profile.missing_fields
+        missing_components:list[str] = profile.missing_fields
 
         if not missing_components or (missing_components == ["db_name"] and not profile.is_database_present):
             
@@ -66,7 +65,7 @@ class Settings(BaseSettings):
 
         raise DatabaseException("Não foi possível gerar URL de conexão por motivo desconhecido")
 
-
+    # Popula o Dicionário IN Memory
     def model_post_init(self, __context: Any) -> None:
         """
         Orquestra a injeção dos perfis a partir do dicionário DB_PROFILES carregado do .env.

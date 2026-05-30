@@ -1,4 +1,8 @@
+# src.application.use_case.account.get_account_by_user_id.py
+
 from typing import Type
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.dto.account_dto import AccountResponse
 from core.domain.port.async_db_transaction_unit_interface import IAsyncDbTransactionUnit
@@ -6,12 +10,12 @@ from core.domain.port.repository.account_repository_interface import IAccountRep
 
 class GetAccountsByUserId:
 
-    def __init__(self, uow: IAsyncDbTransactionUnit, repo_class: Type[IAccountRepository]):
+    def __init__(self, uow: IAsyncDbTransactionUnit[AsyncSession], repo_class: Type[IAccountRepository]):
         self._uow = uow
         self._repo = repo_class
 
     # Recuperação de uma Account por User_ID com ou sem limit/paggination
-    async def execute(self,user_id:int, limit: int|None, skip: int|None) -> list[AccountResponse]:
+    async def execute(self,user_id:int, limit: int|None=None, skip: int|None= None) -> list[AccountResponse]:
 
         async with self._uow:
             repository = self._uow.get_repository(self._repo)

@@ -1,8 +1,9 @@
 # src.core.domain.entity.account_entity.py
+
 from datetime import datetime
 from decimal import Decimal
 
-from core.exception.entity.account.account_exception import (
+from exception.core.exception.entity.account.account_exception import (
     InsufficientBalance,
     InvalidUser,
     InvalidId,
@@ -10,7 +11,7 @@ from core.exception.entity.account.account_exception import (
 
 from core.domain.value_object.amount import Amount
 from core.domain.value_object.balance import Balance
-from core.exception.value_object.balance_exception import InvalidBalance
+from exception.core.exception.value_object.balance_exception import InvalidBalance
 
 
 class Account:
@@ -24,8 +25,8 @@ class Account:
     _balance: Decimal
     _created_at: datetime | None
 
-    def __init__(self, *, id: int|None = None, user_id: int, balance: Decimal, created_at: datetime | None = None) -> None:
-        self._id = id
+    def __init__(self, *, account_id: int|None = None, user_id: int, balance: Decimal, created_at: datetime | None = None) -> None:
+        self._id = account_id
         self._user_id = user_id
 
         self._balance = Balance.validate(balance)
@@ -38,7 +39,7 @@ class Account:
             raise InvalidUser("Usuário não encontrado")
 
         if not isinstance(self._balance, Decimal):
-            raise InvalidBalance("Saldo inválido para conta")
+            raise InvalidBalance("saldo inválido para conta")
 
         if self._id is not None and self._id <= 0:
             raise InvalidId("ID inválido na criação da conta")
@@ -66,11 +67,15 @@ class Account:
         Amount.validate(amount)
 
         if amount > self._balance:
-            raise InsufficientBalance("Saldo insuficiente para saque")
+            raise InsufficientBalance("saldo insuficiente para saque")
 
         self._balance -= amount
 
-    def __eq__(self, other) -> bool:
+
+    def is_persisted(self) -> bool:
+        return (self.id is not None) and (self.created_at is not None) and self.id > 0
+
+    def __eq__(self, other:object) -> bool:
         if not isinstance(other, Account):
             return False
 
@@ -78,15 +83,16 @@ class Account:
 
     # Formato clássico construtor
     def __repr__(self) -> str:
+
         return (
             f"{self.__class__.__name__}("
-            f"id={self.id!r}, "
+            f"transaction_id={self.id!r}, "
             f"user_id={self.user_id!r}, "
             f"balance={self.balance!r}, "
-            f"created_at={self.created_at!r}"
+            f"created_at={self.created_at}"   #datetime has no "!r" repr
             f")"
         )
 
     # Formato Linha
     def __str__(self) -> str:
-        return f"Conta {self.id} (Usuário: {self.user_id}) - Saldo: R${self.balance:,.2f}, criada em:{self.created_at}"
+        return f"Conta {self.id} (Usuário: {self.user_id}) - saldo: R${self.balance:,.2f}, criada em:{self.created_at}"

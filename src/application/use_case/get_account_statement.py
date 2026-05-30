@@ -1,5 +1,8 @@
-# src/application/use_case/account/get_account_statement.py
-from typing import Type
+# src.application.use_case.get_account_statement.py
+from datetime import datetime
+from typing import Type, cast
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.dto.account_dto import AccountResponse
 from application.dto.transaction_dto import TransactionResponse
@@ -13,7 +16,7 @@ from core.domain.port.repository.transaction_repository_interface import ITransa
 
 class GetAccountStatement:
 
-    def __init__(self, uow: IAsyncDbTransactionUnit,
+    def __init__(self, uow: IAsyncDbTransactionUnit[AsyncSession],
                  account_repo: Type[IAccountRepository],
                  transaction_repo: Type[ITransactionRepository]):
         self._uow = uow
@@ -38,20 +41,21 @@ class GetAccountStatement:
                 transactions_recovered = await transaction_repository.get_all_by_account_id(account_id)
 
             account_dto = AccountResponse(
-                id = account.id,
+                id = cast(int,account.id),
                 user_id = account.user_id,
                 balance = account.balance,
-                created_at = account.created_at
+                created_at = cast(datetime,account.created_at)
             )
 
             transactions_dto = [
                 TransactionResponse(
-                    id = transaction.id,
+                    id = cast(int,transaction.id),
                     account_orig_id = transaction.account_orig_id,
                     account_dest_id = transaction.account_dest_id,
                     amount = transaction.amount,
                     type = transaction.type,
-                    timestamp = transaction.timestamp
+                    timestamp = cast(datetime,transaction.timestamp),
+                    status = transaction.status
                 ) for transaction in transactions_recovered
             ]
 

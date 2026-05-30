@@ -9,7 +9,7 @@ from core.domain.entity.transaction_entity import Transaction
 from core.domain.entity.transference_entity import Transference
 
 from infrastructure.persistence.repository.transaction_repository_impl import TransactionRepository
-from infrastructure.exception.persistence.persistence_exception import PersistenceException
+from exception.infrastructure.exception.persistence.persistence_exception import PersistenceException
 
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def clean_transacoes(truncate_table):

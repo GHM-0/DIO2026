@@ -1,10 +1,12 @@
 # src.application.dto.transaction_dto.py
+from typing import Optional
 
+import optional
 from pydantic import BaseModel, Field, ConfigDict
 from decimal import Decimal
 from datetime import datetime
 
-
+from core.domain.value_object.transaction_status import TransactionStatus
 from core.domain.value_object.transaction_type import TransactionType
 
 class CreateTransactionRequest(BaseModel):
@@ -21,6 +23,8 @@ class TransactionResponse(BaseModel):
     type: TransactionType = Field(description="Tipo de Operação")
     amount: Decimal = Field(gt=0, description="Valor da transação")
     timestamp: datetime = Field(description="Data e Hora da transação - UTC")
+    status: TransactionStatus = Field(description="Estado da Transação")
+    message: Optional[str] = Field(description="Mensagem Opcional", default=None)
 
 # class GetTransactionRequest(BaseModel):
-#     id: int = Field(gt=0, description="ID da transação")
+#     transaction_id: int = Field(gt=0, description="ID da transação")

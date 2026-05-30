@@ -20,4 +20,4 @@ class AccountUpdateRequest(BaseModel):
     balance: Decimal = Field(description="Novo saldo da conta")
 
 # class GetAccountResquest(BaseModel):
-#     id: int = Field(gt=0,description="ID da conta")
+#     transaction_id: int = Field(gt=0,description="ID da conta")

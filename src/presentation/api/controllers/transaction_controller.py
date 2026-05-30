@@ -1,4 +1,5 @@
 # src/presentation/api/controllers/transaction_controller.py
+
 from typing import Annotated
 from fastapi import APIRouter, Depends, status, HTTPException
 
@@ -48,17 +49,14 @@ def get_account_by_id_use_case(
 async def create_transaction(
     request: CreateTransactionRequest,
     use_case: Annotated[CreateTransaction, Depends(get_create_transaction_use_case)],
-    current_user: Annotated[dict, Depends(login_required)]
-):
+    current_user: Annotated[dict[str, int], Depends(login_required)]
+) -> TransactionResponse:
     """
     Cria uma nova transação validando titularidade e saldo.
     """
     try:
-        # Passa o user_id do usuário logado para validação de domínio
         return await use_case.execute(request, requester_user_id=current_user["user_id"])
     except (ValueError, Exception) as e:
-        # Idealmente aqui teríamos um exception handler global, 
-        # mas para garantir o retorno 400 nos testes de validação:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
@@ -67,8 +65,10 @@ async def read_transactions_by_account(
     account_id: int,
     use_case: Annotated[GetTransactionByAccountId, Depends(get_transaction_by_account_id_use_case)],
     get_account_use_case: Annotated[GetAccountByID, Depends(get_account_by_id_use_case)],
-    current_user: Annotated[dict, Depends(login_required)]
-):
+    current_user: Annotated[dict[str, int], Depends(login_required)],
+    limit: int = 10,
+    skip: int = 0
+) -> list[TransactionResponse]:
     """
     Lista transações de uma conta específica, garantindo que o usuário seja o dono.
     """
@@ -80,4 +80,4 @@ async def read_transactions_by_account(
     if account.user_id != current_user["user_id"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this account")
 
-    return await use_case.execute(account_id=account_id)
+    return await use_case.execute(account_id=account_id, limit=limit, skip=skip)

@@ -1,4 +1,4 @@
-from core.exception.entity.entity_exception import EntityException
+from exception.core.exception.entity.entity_exception import EntityException
 
 # Entity
 class AccountException(EntityException):

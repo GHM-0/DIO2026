@@ -1,3 +1,4 @@
+# tests.app.dto.001_test_account_dto.py
 import pytest
 from decimal import Decimal
 from datetime import datetime
@@ -19,13 +20,13 @@ def test_deve_falhar_ao_criar_create_account_request_com_atributos_invalidos(use
     with pytest.raises(ValidationError):
         CreateAccountRequest(user_id=user_id, balance=balance)
 
-@pytest.mark.parametrize("id, user_id, balance, created_at", [
+@pytest.mark.parametrize("account_id, user_id, balance, created_at", [
     (0, 1, Decimal("100.00"), datetime.now()),
     (1, 1, Decimal("100.00"), "data_invalida"),
 ])
-def test_deve_falhar_ao_criar_account_response_com_atributos_invalidos(id, user_id, balance, created_at):
+def test_deve_falhar_ao_criar_account_response_com_atributos_invalidos(account_id, user_id, balance, created_at):
     with pytest.raises(ValidationError):
-        AccountResponse(id=id, user_id=user_id, balance=balance, created_at=created_at)
+        AccountResponse(id=account_id, user_id=user_id, balance=balance, created_at=created_at)
 
 def test_deve_criar_account_update_request_com_sucesso():
     balance = Decimal("150.50")

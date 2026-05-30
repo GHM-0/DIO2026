@@ -1,4 +1,5 @@
 # src/presentation/api/controllers/account_controller.py
+
 from typing import Annotated
 from fastapi import APIRouter, Depends, status
 
@@ -51,25 +52,26 @@ def get_account_statement(
 async def create_account(
     request: CreateAccountRequest,                                     # Via Body
     use_case: Annotated[CreateAccount, Depends(get_account_use_case)]
-):
+) -> AccountResponse:
     """
     Cria uma nova conta bancária.
     """
     return await use_case.execute(request)
 
-
 # Dependo Do Login
 @router.get("/", response_model=list[AccountResponse])
 async def read_accounts(
     use_case: Annotated[GetAccountsByUserId, Depends(get_account_by_user_id_use_case)],
-    current_user: Annotated[dict, Depends(login_required)],
+    current_user: Annotated[dict[str, int], Depends(login_required)],
     limit: int = 10,
     skip: int = 0
-):
+) -> list[AccountResponse]:
     return await use_case.execute(user_id=current_user["user_id"], limit=limit, skip=skip)
 
-@router.get("/{id}/transactions", response_model=AccountStatementResponse)
+@router.get("/{account_id}/transactions", response_model=AccountStatementResponse)
 async def read_account_transactions(
         use_case: Annotated[GetAccountStatement, Depends(get_account_statement)],
-        id: int, limit: int, skip: int = 0):
-    return await use_case.execute(account_id=id, limit=limit, skip=skip)
+        account_id: int,
+        limit: int,
+        skip: int = 0) -> AccountStatementResponse:
+    return await use_case.execute(account_id=account_id, limit=limit, skip=skip)

@@ -1,0 +1,261 @@
+classDiagram
+    direction LR
+
+    subgraph DIO_BANK
+        subgraph Core
+            subgraph Domain
+                subgraph Entity
+                    class Account {
+                        +int id
+                        +int user_id
+                        +Decimal balance
+                        +datetime created_at
+                        +deposit(amount: Decimal)
+                        +withdraw(amount: Decimal)
+                    }
+                    class Transaction {
+                        <<abstract>>
+                        #int id
+                        #int _account_orig_id
+                        #int _account_dest_id
+                        #Decimal _amount
+                        #TransactionStatus _status
+                        #datetime _timestamp
+                        +create(...)
+                        +operate(...)
+                    }
+                    class Credit {
+                        +TransactionType _transaction_type = CREDIT
+                    }
+                    class Debit {
+                        +TransactionType _transaction_type = DEBIT
+                    }
+                    class Transference {
+                        +TransactionType _transaction_type = TRANSFERENCE
+                    }
+                    Credit <|-- Transaction
+                    Debit <|-- Transaction
+                    Transference <|-- Transaction
+                end
+
+                subgraph ValueObject
+                    class Amount {
+                        <<ValueObject>>
+                        +Decimal value
+                    }
+                    class Balance {
+                        <<ValueObject>>
+                        +Decimal value
+                    }
+                    class TransactionType {
+                        <<enumeration>>
+                        CREDIT
+                        DEBIT
+                        TRANSFERENCE
+                    }
+                    class TransactionStatus {
+                        <<enumeration>>
+                        CREATED
+                        COMPLETED
+                        FAILED
+                        REVERTED
+                    }
+                    class TransactionResult {
+                        <<ValueObject>>
+                        +str status
+                        +str message
+                        +int transaction_id
+                        +TransactionType transaction_type
+                        +Decimal amount
+                        +int account_orig_id
+                        +int account_dest_id
+                        +datetime timestamp
+                    }
+                end
+            end
+
+            subgraph Port
+                class IAsyncDatabase {
+                    <<interface>>
+                    +connect()
+                    +disconnect()
+                }
+                class IAsyncDbTransactionUnit {
+                    <<interface>>
+                    +start()
+                    +commit()
+                    +rollback()
+                }
+                subgraph Repository
+                    class IRepository {
+                        <<interface>>
+                        +get_by_id(id)
+                        +save(entity)
+                    }
+                    class IAccountRepository {
+                        <<interface>>
+                        +get_by_user_id(user_id)
+                    }
+                    class ITransactionRepository {
+                        <<interface>>
+                        +get_by_account_id(account_id)
+                    }
+                    IAccountRepository <|-- IRepository
+                    ITransactionRepository <|-- IRepository
+                end
+            end
+
+            subgraph Exception
+                class BaseException { <<exception>> }
+                class DomainException { <<exception>> }
+                class EntityException { <<exception>> }
+                class ValueObjectException { <<exception>> }
+                class TransactionException { <<exception>> }
+                class InvalidId { <<exception>> }
+                class InvalidAccount { <<exception>> }
+                class SameAccountException { <<exception>> }
+                class InvalidAmount { <<exception>> }
+                class InsufficientFundsException { <<exception>> }
+                class AccountException { <<exception>> }
+                class AmountException { <<exception>> }
+                class BalanceException { <<exception>> }
+
+                DomainException <|-- BaseException
+                EntityException <|-- DomainException
+                ValueObjectException <|-- DomainException
+                TransactionException <|-- EntityException
+                AccountException <|-- EntityException
+                InvalidId <|-- TransactionException
+                InvalidAccount <|-- TransactionException
+                SameAccountException <|-- TransactionException
+                InvalidAmount <|-- TransactionException
+                InsufficientFundsException <|-- TransactionException
+                AmountException <|-- ValueObjectException
+                BalanceException <|-- ValueObjectException
+            end
+
+            Account o-- Balance
+            Transaction o-- Amount
+            Transaction o-- TransactionType
+            Transaction o-- TransactionStatus
+            Transaction ..> Account : "references account IDs"
+            Transaction ..> TransactionResult : "returns"
+            Transaction ..> TransactionException : "throws"
+            TransactionResult o-- TransactionType
+            TransactionResult o-- TransactionStatus
+            TransactionResult o-- Amount
+        end
+
+        subgraph Application
+            subgraph DTO
+                class LoginDTO
+                class AccountDTO
+                class TransactionDTO
+                class AccountStatementDTO
+            end
+
+            subgraph UseCase
+                class CreateAccountUseCase
+                class GetAccountByIdUseCase
+                class GetAccountByUserIdUseCase
+                class GetAccountStatementUseCase
+                class CreateTransactionUseCase
+                class GetTransactionByIdUseCase
+                class GetTransactionByAccountIdUseCase
+                class LoginUseCase
+
+                subgraph Exception
+                    class UseCaseException { <<exception>> }
+                    class CreateTransactionException { <<exception>> }
+                    CreateTransactionException <|-- UseCaseException
+                end
+
+                CreateAccountUseCase ..> IAccountRepository
+                CreateAccountUseCase ..> IAsyncDbTransactionUnit
+                GetAccountByIdUseCase ..> IAccountRepository
+                GetAccountByUserIdUseCase ..> IAccountRepository
+                GetAccountStatementUseCase ..> IAccountRepository
+                GetAccountStatementUseCase ..> ITransactionRepository
+                CreateTransactionUseCase ..> ITransactionRepository
+                CreateTransactionUseCase ..> IAccountRepository
+                CreateTransactionUseCase ..> IAsyncDbTransactionUnit
+                GetTransactionByIdUseCase ..> ITransactionRepository
+                GetTransactionByAccountIdUseCase ..> ITransactionRepository
+                LoginUseCase ..> SecurityService
+            end
+        end
+
+        subgraph Presentation
+            subgraph API
+                subgraph Controllers
+                    class AuthController
+                    class AccountController
+                    class TransactionController
+                end
+            end
+
+            subgraph Exception
+                class PresentationException { <<exception>> }
+                PresentationException <|-- BaseException
+            end
+
+            AuthController ..> LoginUseCase
+            AccountController ..> CreateAccountUseCase
+            AccountController ..> GetAccountByIdUseCase
+            AccountController ..> GetAccountByUserIdUseCase
+            AccountController ..> GetAccountStatementUseCase
+            TransactionController ..> CreateTransactionUseCase
+            TransactionController ..> GetTransactionByIdUseCase
+            TransactionController ..> GetTransactionByAccountIdUseCase
+        end
+
+        subgraph Infrastructure
+            class Config
+            class Lifespan
+
+            subgraph Security
+                class SecurityService
+            end
+
+            subgraph Persistence
+                class DatabaseProfiles
+                class AsyncSQLAlchemyDatabase
+                class SQLAlchemyTransactionUnit
+
+                subgraph Model
+                    class BaseModel
+                    class AccountModel
+                    class TransactionModel
+                    class ModelsModule
+                    AccountModel <|-- BaseModel
+                    TransactionModel <|-- BaseModel
+                end
+
+                subgraph Repository
+                    class AccountRepositoryImpl
+                    class TransactionRepositoryImpl
+                    AccountRepositoryImpl <|.. IAccountRepository
+                    TransactionRepositoryImpl <|.. ITransactionRepository
+                end
+            end
+
+            subgraph Exception
+                class InfraException { <<exception>> }
+                class DatabaseException { <<exception>> }
+                class PersistenceException { <<exception>> }
+                InfraException <|-- BaseException
+                DatabaseException <|-- InfraException
+                PersistenceException <|-- InfraException
+            end
+
+            AsyncSQLAlchemyDatabase <|.. IAsyncDatabase
+            SQLAlchemyTransactionUnit <|.. IAsyncDbTransactionUnit
+            AccountRepositoryImpl o-- AccountModel
+            TransactionRepositoryImpl o-- TransactionModel
+            AccountRepositoryImpl ..> AsyncSQLAlchemyDatabase
+            TransactionRepositoryImpl ..> AsyncSQLAlchemyDatabase
+            SQLAlchemyTransactionUnit ..> AsyncSQLAlchemyDatabase
+            Lifespan ..> AsyncSQLAlchemyDatabase
+            Config ..> DatabaseProfiles
+        end
+    end

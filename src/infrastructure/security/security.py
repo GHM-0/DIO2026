@@ -1,6 +1,7 @@
-# src/infrastructure/security/security.py
+# src.infrastructure.security.security.py
+
 import time
-from typing import Annotated, Union
+from typing import Annotated, Union, cast
 from uuid import uuid4
 
 import jwt
@@ -10,9 +11,11 @@ from pydantic import BaseModel, ConfigDict
 
 from infrastructure.config import settings
 
+# Correções
+from fastapi.security.http import HTTPAuthorizationCredentials
 
-SECRET = settings.SECRET_KEY  #.replace('"', '').replace("'", "")
-ALGORITHM = settings.ALGORITHM #.replace('"', '').replace("'", "")
+SECRET:str = cast(str,settings.SECRET_KEY)  #.replace('"', '').replace("'", "")
+ALGORITHM:str = cast(str,settings.ALGORITHM) #.replace('"', '').replace("'", "")
 
 
 class AccessToken(BaseModel):
@@ -49,7 +52,7 @@ def sign_jwt(user_id: int) -> JWTToken:
         "aud": "desafio-bank",         # Define para qual aplicação este token é destinado
         "exp": now + (60 * 30),        # Tempo de expiração (Unix timestamp)
         "iat": now,                    # Momento da emissão
-        "nbf": now,                    # Token não é válido antes deste momento
+        "nbf": now,                    # Vigência do Token
         "jti": uuid4().hex,            # ID único do token para prevenção de ataques de reuso
     }
 
@@ -84,7 +87,8 @@ class JWTBearer(HTTPBearer):
     def __init__(self, auto_error: bool = True):
         super(JWTBearer, self).__init__(auto_error=auto_error)
 
-    async def __call__(self, request: Request) -> AccessToken:
+
+    async def __call__(self, request: Request) -> HTTPAuthorizationCredentials: #AccessToken:
         authorization = request.headers.get("Authorization", "")
         scheme, _, credentials = authorization.partition(" ")
 
@@ -96,7 +100,9 @@ class JWTBearer(HTTPBearer):
                 )
 
             # Delega a validação; se inválido, interrompe a requisição aqui
-            return await decode_jwt(credentials)
+            #return await decode_jwt(credentials)
+            # Correção
+            return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)
         else:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -105,13 +111,17 @@ class JWTBearer(HTTPBearer):
 
 
 async def get_current_user(
-    token: Annotated[AccessToken, Depends(JWTBearer())],
+    #token: Annotated[AccessToken, Depends(JWTBearer())],
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(JWTBearer())],
 ) -> dict[str, int]:
     """Injeta o ID do usuário baseado no token validado."""
-    return {"user_id": int(token.sub)}
+    #return {"user_id": int(token.sub)}
+    # Correção
+    access_token_obj = await decode_jwt(credentials.credentials)
+    return {"user_id": int(access_token_obj.sub)}
 
 
-def login_required(current_user: Annotated[dict[str, int], Depends(get_current_user)]):
+def login_required(current_user: Annotated[dict[str, int], Depends(get_current_user)]) -> dict[str,int]:
     """
     Garante que o endpoint exija autenticação.
     A verificação 'if not current_user' é omitida pois o JWTBearer 

@@ -1,70 +1,82 @@
 classDiagram
+    direction LR
+
+    %% Credits
+    %%note "Updated by Gemini (Google AI) in collaboration with the user.\nReflecting current domain model state." as Credits
+
+    %% Entities
     class Account {
         +int id
-        +Balance balance
-        +deposit(amount: Amount)
-        +withdraw(amount: Amount)
+        +int user_id
+        +Decimal balance
+        +datetime created_at
+        +deposit(amount: Decimal)
+        +withdraw(amount: Decimal)
     }
 
     class Transaction {
         <<abstract>>
         #int id
-        #Account _operand
-        #Account _counterparty
-        #Amount _amount
-        #TransactionType _type
+        #int _account_orig_id
+        #int _account_dest_id
+        #Decimal _amount
+        #TransactionStatus _status
         #datetime _timestamp
-        #bool|None _status
-        +__init__(id: int|None, operand: Account, counterparty: Account|None, type: TransactionType, amount: Decimal, timestamp: datetime|None)
-        +account_orig_id: int|None
-        +account_dest_id: int|None
+        +__init__(transaction_id: int|None, account_orig_id: int, account_dest_id: int, amount: Decimal, timestamp: datetime|None, status: TransactionStatus|None)
+        +create(transaction_id: int|None, account_orig: Account, account_dest: Account, amount: Decimal, timestamp: datetime|None): Self
+        +account_orig_id: int
+        +account_dest_id: int
         +amount: Decimal
         +type: TransactionType
         +id: int|None
         +timestamp: datetime|None
-        +status: str
-        #_operate()* TransactionResult
-        #_build_result(success: bool, message: str) TransactionResult
+        +status: TransactionStatus
+        #_operate(account_orig: Account, account_dest: Account): TransactionResult
+        #_build_result(status: TransactionStatus, message: str): TransactionResult
         +__eq__(other)
         +__repr__()
     }
 
     class Credit {
-        +__init__(id: int|None, operand: Account, type: TransactionType, amount: Decimal, timestamp: datetime|None)
-        #_operate() TransactionResult
+        +TransactionType _transaction_type = CREDIT
+        +type: TransactionType
+        #_operate(account_orig: Account, account_dest: Account): TransactionResult
     }
 
     class Debit {
-        +__init__(id: int|None, operand: Account, type: TransactionType, amount: Decimal, timestamp: datetime|None)
-        #_operate() TransactionResult
+        +TransactionType _transaction_type = DEBIT
+        +type: TransactionType
+        #_operate(account_orig: Account, account_dest: Account): TransactionResult
     }
 
     class Transference {
-        +__init__(id: int|None, operand: Account, counterparty: Account, type: TransactionType, amount: Decimal, timestamp: datetime|None)
-        #_operate() TransactionResult
+        +TransactionType _transaction_type = TRANSFERENCE
+        +type: TransactionType
+        #_operate(account_orig: Account, account_dest: Account): TransactionResult
     }
 
+    %% Value Objects
     class Amount {
         <<ValueObject>>
         +Decimal value
-        +validate(value: Decimal) Amount
+        +validate(value: Decimal): Decimal
     }
 
     class Balance {
         <<ValueObject>>
         +Decimal value
-        +validate(value: Decimal) Balance
+        +validate(value: Decimal): Decimal
     }
 
     class TransactionResult {
         <<ValueObject>>
-        +bool success
+        +str status
         +str message
         +int transaction_id
         +TransactionType transaction_type
-        +Amount amount
-        +int origin_id
-        +int destination_id
+        +Decimal amount
+        +int account_orig_id
+        +int account_dest_id
         +datetime timestamp
     }
 
@@ -75,6 +87,15 @@ classDiagram
         TRANSFERENCE
     }
 
+    class TransactionStatus {
+        <<enumeration>>
+        CREATED
+        COMPLETED
+        FAILED
+        REVERTED
+    }
+
+    %% Exceptions
     class TransactionException {
         <<exception>>
     }
@@ -82,12 +103,14 @@ classDiagram
     class InvalidAccount { <<exception>> }
     class SameAccountException { <<exception>> }
     class InvalidAmount { <<exception>> }
+    class InsufficientFundsException { <<exception>> }
 
+    %% Relationships
     Transaction <|-- Credit
     Transaction <|-- Debit
     Transaction <|-- Transference
 
-    Transaction o-- Account : "_operand/_counterparty"
+    Transaction ..> Account : "references account IDs"
     Transaction o-- Amount : "_amount"
     Account o-- Balance : "balance"
 
@@ -98,7 +121,11 @@ classDiagram
     TransactionException <|-- InvalidAccount
     TransactionException <|-- SameAccountException
     TransactionException <|-- InvalidAmount
+    TransactionException <|-- InsufficientFundsException
 
     TransactionResult --> TransactionType
+    TransactionResult --> TransactionStatus
     TransactionResult --> Amount
-    Transaction --> TransactionType
+
+    Transaction --> TransactionType : "gets type from subclass"
+    Transaction --> TransactionStatus : "manages status"

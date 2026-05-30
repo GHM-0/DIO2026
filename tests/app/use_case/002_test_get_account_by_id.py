@@ -1,10 +1,18 @@
 from decimal import Decimal
 
 import pytest
+import pytest_asyncio
 
 from application.use_case.account.get_account_by_id import GetAccountByID
 from application.dto.account_dto import AccountResponse
 from infrastructure.persistence.repository.account_repository_impl import AccountRepository
+
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def clean_database(truncate_table):
+    """Garante que as tabelas de contas e transações estejam vazias para cada teste."""
+    await truncate_table("transactions")
+    await truncate_table("accounts")
 
 @pytest.mark.asyncio
 async def test_deve_retornar_uma_conta_valida_por_id(uow, create_account):

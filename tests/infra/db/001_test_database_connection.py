@@ -6,7 +6,7 @@ from infrastructure.config import settings
 
 from sqlalchemy import text
 
-from infrastructure.exception.database.database_exceptions import DataBaseConnectionException
+from exception.infrastructure.exception.database.database_exceptions import DataBaseConnectionException
 from infrastructure.persistence.async_sqlalchemy_database import AsyncSqlAlchemyDatabase
 
 

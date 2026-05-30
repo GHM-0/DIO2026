@@ -1,3 +1,5 @@
+# tests.app.dto.002_test_transaction_dto.py
+
 from datetime import datetime
 from decimal import Decimal
 import pytest
@@ -8,6 +10,7 @@ from application.dto.transaction_dto import (
     TransactionResponse,
 )
 from core.domain.value_object.transaction_type import TransactionType
+from core.domain.value_object.transaction_status import TransactionStatus # <-- Adicionar esta importação
 
 @pytest.mark.parametrize("orig,dest, transaction_type, amount", [
     (12,11, TransactionType.CREDIT, Decimal("12.30")),
@@ -24,27 +27,45 @@ def test_deve_criar_uma_transacao_valida(orig: int,dest:int, transaction_type: T
 
 
 @pytest.mark.parametrize("orig,dest, transaction_type, amount", [
-    (0, 1,TransactionType.CREDIT, Decimal("10.00")),   # account_orig_id inválido (gt=0)
-    (1, 1,TransactionType.CREDIT, Decimal("-5.00")),  # amount inválido (ge=0)
+    (0, 1,TransactionType.CREDIT, Decimal("10.00")),    # account_orig_id inválido (gt=0)
+    (1, 1,TransactionType.CREDIT, Decimal("-5.00")),    # amount inválido (ge=0)
     (None, 1,TransactionType.CREDIT, Decimal("10.00")), # account_orig_id nulo
 ])
 def test_deve_falhar_ao_criar_uma_transacao_com_dados_invalidos(orig,dest, transaction_type, amount):
     with pytest.raises(ValidationError):
         CreateTransactionRequest(account_orig_id=orig, account_dest_id=dest, type=transaction_type, amount=amount)
 
-@pytest.mark.parametrize("id, account_orig_id, transaction_type, amount, timestamp", [
-    (12, 134, TransactionType.DEBIT, Decimal("1230.00"), datetime.now()),
+@pytest.mark.parametrize("transaction_id, account_orig_id, account_dest_id, transaction_type, amount, timestamp, status", [
+    (12, 134, 567, TransactionType.DEBIT, Decimal("1230.00"), datetime.now(), TransactionStatus.COMPLETED), # <-- Adicionar valores para account_dest_id e status
 ])
-def test_deve_retornar_uma_transacao_valida(id: int, account_orig_id: int, transaction_type: TransactionType, amount: Decimal, timestamp: datetime):
-    transaction = TransactionResponse(id=id, account_orig_id=account_orig_id, type=transaction_type, amount=amount, timestamp=timestamp)
+def test_deve_retornar_uma_transacao_valida(
+    transaction_id: int,
+    account_orig_id: int,
+    account_dest_id: int,
+    transaction_type: TransactionType,
+    amount: Decimal,
+    timestamp: datetime,
+    status: TransactionStatus
+):
+    transaction = TransactionResponse(
+        id=transaction_id,
+        account_orig_id=account_orig_id,
+        account_dest_id=account_dest_id,
+        type=transaction_type,
+        amount=amount,
+        timestamp=timestamp,
+        status=status
+    )
     assert isinstance(transaction, TransactionResponse)
-    assert transaction.id == id
+    assert transaction.id == transaction_id
     assert transaction.timestamp == timestamp
     assert transaction.account_orig_id == account_orig_id
+    assert transaction.account_dest_id == account_dest_id # <-- Nova asserção
     assert transaction.type == transaction_type
     assert transaction.amount == amount
+    assert transaction.status == status # <-- Nova asserção
 
-@pytest.mark.parametrize("id, account_orig_id, transaction_type, amount, timestamp", [
+@pytest.mark.parametrize("transaction_id, account_orig_id, transaction_type, amount, timestamp", [
     (None, 134, TransactionType.DEBIT, Decimal("1230.00"), datetime.now()),
     (12, None, TransactionType.DEBIT, Decimal("1230.00"), datetime.now()),
     (12, 134, "", Decimal("1230.00"), datetime.now()),
@@ -52,6 +73,6 @@ def test_deve_retornar_uma_transacao_valida(id: int, account_orig_id: int, trans
     (12, 134, TransactionType.DEBIT, Decimal("-11.00"), datetime.now()),
     (12, 134, TransactionType.DEBIT, Decimal("1230.00"), None),
 ])
-def test_deve_falhar_ao_retornar_uma_transacao_invalida(id, account_orig_id, transaction_type, amount, timestamp):
+def test_deve_falhar_ao_retornar_uma_transacao_invalida(transaction_id, account_orig_id, transaction_type, amount, timestamp):
     with pytest.raises(ValidationError):
-        TransactionResponse(id=id, account_orig_id=account_orig_id, type=transaction_type, amount=amount, timestamp=timestamp)
+        TransactionResponse(transaction_id=id, account_orig_id=account_orig_id, type=transaction_type, amount=amount, timestamp=timestamp)

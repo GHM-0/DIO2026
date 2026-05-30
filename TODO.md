@@ -5,23 +5,23 @@
     [Domain]                 
         Entity                                          # [DONE] FileName = {class_name}_entity.py
             Account                                     # Com métodos de domínio deposit/withdraw
-            Transaction                                 # Com validação de imutabilidade
+            Transaction (Abstract)                      # [DONE] Com validação de imutabilidade
+            Credit                                      # [DONE] Implementa Transaction
+            Debit                                       # [DONE] Implementa Transaction
+            Transference                                # [DONE] Implementa Transaction
             User*                                       -> Design: user_id externo via Auth JWT
     
         Value_Object                                    # [DONE] FileName = {class_name}.py
             Amount                                      # Validação de valores SEMPRE positivos
             Balance                                     # Controle de saldo
             TransactionType                             # Enum Deposit/Withdraw
+            TransactionStatus                           # [DONE] Enum para status da transação
+            TransactionResult                           # [DONE] Value Object para o resultado da transação
 
         Port:                                           # [DONE] 
             IAsyncDatabase                              # Abstração de SGBD (database_interface.py)
             IAsyncDbTransactionUnit                     # Interface de UoW (async_db_transaction_unit_interface.py)
             IAccountRepository, ITransactionRepository  # Interfaces de Repositório (port/repository/*)
-
-    Exception:                                          # [DONE] Hierarquia em src/core/exception
-        - DomainException (Base)
-        - EntityException (Account/Transaction)
-        - ValueObjectsException (Amount/Balance)
 
 [Application]
     
@@ -37,16 +37,15 @@
         get_account_statement.py                        # Em use_case/ (Geração de extrato)
         get_account_by_id.py / user_id.py               # Em account/
         auth/login.py                                   # Em auth/
+        get_transaction_by_id.py                        # Em transaction/
+        get_transaction_by_account_id.py                # Em transaction/
 
 [Presentation]
 
-    api/Controller:                                     # [WIP] Controladores FastAPI com DI
+    api/controllers:                                    # [DONE] Controladores FastAPI com DI
             account_controller.py                       # [DONE] Rotas /accounts, extratos (Atenção: Import path)
             auth_controller.py                          # [DONE] Rotas /auth
-            transaction_controller.py                   # [TODO] Arquivo vazio / Não registrado em main.py
-
-    Exception:                                          # [DONE] Handler de exceções de API
-            presentation/exception/presentation_exception.py
+            transaction_controller.py                   # [DONE] Registrado em main.py
 
 [Infrastructure]
 
@@ -71,27 +70,34 @@
             account_repository_impl.py
             transaction_repository_impl.py
 
-    [exception]                                         # [DONE] Hierarquia de Infraestrutura
-        infra_exception.py (Base)
-        database/database_exceptions.py
-        persistence/persistence_exception.py
+[Exceptions]                                            # [DONE] {class_name}_exception.py 
 
-[tests] 
+    base_exception.py                                             
+    [core]  domain
+        [entity]
+            account, transaction
+        [value_object] amount, balance
+    [application]                                     
+        use_case
+    [presentation]                                    
+        infra, database, persistence
+
+[tests]       
 
     conftest.py                                         # [DONE] Fixtures e Mocking de Engine
 
     [helper]
-        db_fixtures.py                                  # Fixtures de Seed de dados
+        integration_fixtures.py                         # Fixtures de Seed de dados
 
     Estrutura:
         [application] -> dto, use_case
         [core]        -> domain, entity, value_object
         [infra]       -> db, repository, security
-        [presentation]                                  # [TODO] Implementar testes de controladores
+        [presentation]                                  # [DONE] Implementar testes de controladores
 
 [ROOT] 
 
-  - main.py (Entry Point)                               # [DONE] Registra Auth e Account. "E não haverá Transaction."
+  - src/main.py (Entry Point)                           # [DONE] Registra Auth e Account e Transaction
   - alembic.ini                                         # [DONE] Configuração de roteamento de Migrações
   - [pytest] pytest.ini                                 # [DONE] Configuração de descoberta
   - [migrations] env.py, script.py.mako                 # [DONE] Gestão de Versões (Alembic)
@@ -101,19 +107,14 @@
   - [docker] Dockerfile, docker-compose.yml             # [DONE] 
   - [Makefile] Alvos: dev, dev-db, setup, tests, clean  # [DONE]
   - README.md                                           # [DONE] 
-  - TODO.md (Este arquivo)                              # [WIP] 
+  - TODO.md (Este arquivo)                              # [DONE] 
 
-[CONFORMITY CHECK - README.md]                          # [TODO]
-  - Validação de Saldo: Implementar trava para saques superiores ao saldo atual no Use Case/Entidade.
-  - Exposição de Transações: Reavaliar a diretiva de não expor o router de Transaction no main.py.
-  - Validação de Valores: Garantir enforcement de valores positivos em depósitos e saques (Value Objects).
+[CONFORMITY CHECK - README.md]                          # [DONE]
+  - Validação de saldo: Implementar trava para saques superiores ao saldo atual no Use Case/Entidade. # [DONE]
+  - Validação de valores: Garantir enforcement de valores positivos em depósitos e saques (Value Objects). # [DONE]
 
-[NEXT STEPS / VALIDATION]                               # [TODO]
-  1. Escrita dos testes para os controladores (Presentation Layer).
-  2. Teste manual/local da aplicação (Swagger/Postman) para validar fluxos de Auth e Account.
-  3. Execução da suíte de testes em ambiente local (PYTHONPATH=src).
-  4. Homologação final dos testes dentro dos containers (via Makefile/Docker).
-
+>> Entry Point = src/main.py
+>> Auto-Generated Documentation = /docs (Swagger)
 ---
 **Notas de Design e Estudo, pela IA**
 
@@ -123,12 +124,3 @@
 3. **Dependency Injection (DI)**: Uso intensivo de provedores FastAPI para desacoplar Use Cases de implementações físicas.
 4. **Ports and Adapters**: Interfaces no Core (`Ports`) implementadas na Infra (`Adapters`), protegendo a lógica de negócio.
 5. **JWT Externo**: Identidade de usuário gerenciada via token, sem entidade `User` persistente no domínio local.
-
-**Designs Alternativos Adequados:**
-- **Vertical Slices**: Em vez de camadas horizontais, agrupar por funcionalidade (ex: pasta `Account` com seu DTO, UseCase e Repo). Reduz o "salto" entre arquivos.
-- **CQRS Simplificado**: Separar modelos de leitura (extratos/consultas) dos modelos de escrita (criação de transações) para otimizar performance de banco.
-- **Hexagonal puro**: Ênfase total em isolar o banco como um detalhe de saída, facilitando a troca por NoSQL ou In-memory sem tocar no Core.
-
----
->> Entry Point = src/main.py
->> Auto-Generated Documentation = /docs (Swagger)

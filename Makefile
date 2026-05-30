@@ -37,7 +37,7 @@ WAIT_FOR_DB = @printf "Subindo $(DB_CONTAINER) ..."; \
 	done; \
 	echo "[PRONTO]"
 
-.PHONY: dev build clean stop setup backup deploy dev-db tests help
+.PHONY: dev build clean stop setup backup deploy dev-db tests help run-local
 .DEFAULT_GOAL := dev
 
 ## help: Exibe esta lista de comandos úteis.
@@ -89,7 +89,8 @@ build: clean
 
 ## deploy: Build da imagem de deploy
 deploy: build setup
-	@$(COMPOSE) -f docker-compose.yml up -d
+	#@$(COMPOSE) -f docker-compose.yml up -d
+	@$(COMPOSE) --profile deploy -f docker-compose.yml up -d
 	$(WAIT_FOR_DB)
 	@echo "Executando migrações no container $(APP_CONTAINER)..."
 	@$(MIGRATE_RUN)
@@ -106,3 +107,8 @@ backup:
 tests:
 	@echo "--- [Iniciando Suíte de Testes] ---"
 	@PYTHONPATH=src $(PYTEST) -vvv -s tests/
+
+## run-local: Inicia a aplicação FastAPI localmente com Uvicorn.
+run-local:
+	@echo "--- [Iniciando Aplicação FastAPI Localmente] ---"
+	@PYTHONPATH=src uv run uvicorn src.main:app --reload

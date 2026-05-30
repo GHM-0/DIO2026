@@ -1,4 +1,5 @@
 # src.application.dto.login_dto.py
+
 from pydantic import BaseModel,Field
 
 class LoginRequest(BaseModel):

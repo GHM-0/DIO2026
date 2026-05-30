@@ -15,7 +15,7 @@ def get_login_use_case() -> LoginUseCase:
 async def login(
     request: LoginRequest,
     use_case: Annotated[LoginUseCase, Depends(get_login_use_case)]
-):
+) -> LoginResponse:
     """
     Realiza o login e retorna um token JWT.
     """

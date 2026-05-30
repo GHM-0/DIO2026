@@ -1,6 +1,8 @@
+# src.core.domain.value_object.amount.py
+
 from decimal import Decimal
 from typing import Any
-from core.exception.value_object.amount_exception import InvalidAmount
+from exception.core.exception.value_object.amount_exception import InvalidAmount
 
 class Amount:
     @staticmethod

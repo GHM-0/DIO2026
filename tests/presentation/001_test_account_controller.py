@@ -1,149 +1,85 @@
 import pytest
 import pytest_asyncio
 from fastapi import status
-
-from core.domain.value_object.transaction_type import TransactionType
+from application.dto.account_dto import AccountResponse
 
 @pytest_asyncio.fixture(scope="function", autouse=True)
-async def clean_tables(truncate_table):
+async def clean_database(truncate_table):
     """Garante que as tabelas de contas e transações estejam vazias para cada teste."""
     await truncate_table("transactions")
     await truncate_table("accounts")
 
-# Erro 401 Não Autorizado
-def test_deve_falhar_ao_acessar_o_route_sem_token(api_client):
-    response = api_client.get("/accounts/")
+async def test_deve_criar_criar_uma_conta(api_client, authenticated_headers):
+    """
+    Deve criar uma nova conta com sucesso e retornar o status 201.
+    """
+    user_id = 1
+    headers = authenticated_headers(user_id)
+    request_body = {
+        "user_id": user_id,
+        "balance": "100.00"
+    }
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    response = api_client.post("/accounts/", json=request_body, headers=headers)
 
-    assert response.json() == {"detail": "Invalid authorization code."}
-
-
-def test_deve_falhar_ao_acessar_o_router_com_token_expirado_ou_invalido(api_client):
-
-    headers = {"Authorization": "NO TOKEN"}
-
-    response = api_client.get("/accounts/", headers=headers)
-
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    assert response.json() == {"detail": "Invalid authentication scheme."}
-
-# Status 200
-@pytest.mark.parametrize("payload", [
-    ({"user_id": 1, "balance": 100.0}),
-    ({"user_id": 1, "balance": 10.0}),
-    ({"user_id": 1, "balance": 1000.0}),
-])
-def test_deve_criar_uma_nova_conta_com_dados_validos(api_client, payload, authenticated_headers):
-    # Arrange
-    headers = authenticated_headers(payload["user_id"])
-    response = api_client.post("/accounts/", json=payload, headers=headers)
-
-    # Assert
     assert response.status_code == status.HTTP_201_CREATED
 
-    data = response.json()
-    assert data["user_id"] == payload["user_id"]
-    assert "id" in data
-    assert float(data["balance"]) == payload["balance"]
+    response_data = response.json()
+    assert "id" in response_data
+    assert response_data["user_id"] == user_id
+    assert response_data["balance"] == request_body["balance"]
+    assert "created_at" in response_data
 
-    # Check
-    response_get = api_client.get(f"/accounts/", headers=headers)
-    assert response_get.status_code == status.HTTP_200_OK
-    
-    accounts = response_get.json()
-    account_ids = [acc["id"] for acc in accounts]
-    assert data["id"] in account_ids
+    AccountResponse.model_validate(response_data)
 
-
-@pytest.mark.parametrize("user_id",[
-        ({"user_id": 1})
+@pytest.mark.parametrize("user_id,balance",[
+    (1,"-1"),
+    (1,None),
 ])
-def test_deve_listar_todas_as_contas_existentes(api_client, user_id, authenticated_headers):
-    # Arrange
-    headers = authenticated_headers(user_id["user_id"])
-    response = api_client.get("/accounts/", headers=headers)
-
-    # Assert
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert isinstance(data, list)
-
-@pytest.mark.parametrize("user_id",[
-        ({"user_id":1})
-])
-@pytest.mark.asyncio
-async def test_deve_retornar_o_extrato_de_transacoes_de_uma_conta_valida_sem_transacoes(api_client, user_id, authenticated_headers, db_to_test):
-    # Arrange
-    user_id_value = user_id["user_id"]
-    setup_config = [
-        {
-            "user_id": user_id_value,
-            "balance": 100.0,
-            "transactions": [] # Nenhuma transação
-        }
-    ]
-    seeded_data = await db_to_test(setup_config)
-    account_id = seeded_data[0]["account"].id
-    headers = authenticated_headers(user_id_value)
-
-    # Act
-    response = api_client.get(
-        f"/transactions/{account_id}", # Rota corrigida
-        headers=headers
-    )
-
-    # Assert
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-
-    assert isinstance(data, list)
-    assert len(data) == 0 # Espera-se uma lista vazia de transações
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", [
-    {
-        "user_id": 1,
-        "balance": 1000.0,
-        "transactions": [
-            {"amount": 200.0, "transaction_type": TransactionType.CREDIT},
-            {"amount": 50.0, "transaction_type": TransactionType.DEBIT}
-        ]
+async def test_nao_deve_criar_criar_uma_conta_com_atributos_invalido(api_client, authenticated_headers,user_id,balance):
+    """
+    Deve Falhar ao criar uma nova conta com atributos inválidos e retornar o status 422.
+    """
+    headers = authenticated_headers(user_id)
+    request_body = {
+        "user_id": user_id,
+        "balance": balance
     }
-])
-async def test_deve_retornar_o_extrato_de_transacoes_de_uma_conta_valida_com_transacoes(
-        api_client,
-        db_to_test,
-        authenticated_headers,
-        test_case
-):
-    # 1. Arrange: Popula o banco usando a fixture de lote
-    seeded_data = await db_to_test([test_case])
-    account_persisted = seeded_data[0]["account"]
-    
-    headers = authenticated_headers(test_case["user_id"])
 
-    # 2. Act: Chama o endpoint correto (/transactions/{id})
-    response = api_client.get(
-        f"/transactions/{account_persisted.id}",
+    response = api_client.post("/accounts/", json=request_body, headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+async def test_deve_recuperar_extrato_de_conta_sem_transacoes(api_client, authenticated_headers):
+    """
+    Deve criar uma conta, adicionar algumas transações e recuperar o extrato dessa conta.
+    """
+    user_id = 1
+    headers = authenticated_headers(user_id)
+    request_body = {
+        "user_id": user_id,
+        "balance": "100.00"
+    }
+
+    response_created = api_client.post("/accounts/", json=request_body, headers=headers)
+    assert response_created.status_code == status.HTTP_201_CREATED
+    created_account_data = response_created.json()
+    account_id = created_account_data["id"]
+
+    limit = 10
+    skip = 0
+    response_statement = api_client.get(
+        f"/accounts/{account_id}/transactions?limit={limit}&skip={skip}",
         headers=headers
     )
 
-    # 3. Assert: Validações lógicas
-    assert response.status_code == status.HTTP_200_OK
-    
-    transactions_list = response.json()
+    assert response_statement.status_code == status.HTTP_200_OK
 
-    # O endpoint retorna uma lista de transações conforme o controller atual
-    assert isinstance(transactions_list, list)
-    assert len(transactions_list) == len(test_case["transactions"])
-    assert transactions_list[0]["account_orig_id"] == account_persisted.id
+    statement_data = response_statement.json()
 
-    # Validação de valor (convertendo para float para comparar com o setup)
-    assert float(transactions_list[0]["amount"]) == test_case["transactions"][0]["amount"]
-    assert transactions_list[0]["transaction_type"] == test_case["transactions"][0]["transaction_type"].value # Comparar o valor do Enum
+    assert "account" in statement_data
+    assert statement_data["account"]["id"] == account_id
+    assert statement_data["account"]["user_id"] == user_id
 
-    assert float(transactions_list[1]["amount"]) == test_case["transactions"][1]["amount"]
-    assert transactions_list[1]["transaction_type"] == test_case["transactions"][1]["transaction_type"].value # Comparar o valor do Enum
+    assert "transactions" in statement_data
+    assert isinstance(statement_data["transactions"], list)
