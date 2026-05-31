@@ -84,10 +84,10 @@
 
 [tests]       
 
-    conftest.py                                         # [DONE] Fixtures e Mocking de Engine
+    conftest.py                                         # [DONE]
 
     [helper]
-        integration_fixtures.py                         # Fixtures de Seed de dados
+        integration_fixtures.py                         # Fixtures
 
     Estrutura:
         [application] -> dto, use_case
